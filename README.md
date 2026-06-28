@@ -1,8 +1,6 @@
 # 🛡️ AI-Powered Phishing URL Detector
 
-An advanced, end-to-end Machine Learning web application designed to detect phishing URLs in real time. The system combines lexical feature extraction, a Random Forest Classifier (with **97%+ accuracy**), and a multi-method WHOIS lookup system to protect users from malicious links.
-
-Developed by **Areeba Ali** as a demonstration of machine learning application in cybersecurity.
+An advanced, end-to-end Machine Learning web application designed to detect phishing URLs in real time. The system combines lexical feature extraction, a Random Forest Classifier, and a multi-method WHOIS lookup system to protect users from malicious links.
 
 ---
 
@@ -36,7 +34,6 @@ Phishing AI/
 ├── phishing_dataset.csv       # Dataset containing 3,600+ labeled URLs
 ├── requirements.txt           # Python dependency file
 ├── README.md                  # This file
-├── PRESENTATION_VIVA_GUIDE.md # Study guide for classroom presentation & viva
 ├── model/                     # Directory for serialized ML artifacts
 │   ├── phishing_model.pkl     # Trained Random Forest model (binary)
 │   ├── scaler.pkl             # Fitted StandardScaler object
