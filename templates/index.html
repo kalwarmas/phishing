@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phishing URL Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --safe: #10b981;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .content { padding: 40px; }
+        .url-input-container { position: relative; margin-bottom: 30px; }
+        .url-input {
+            width: 100%;
+            padding: 18px 60px 18px 20px;
+            font-size: 1.1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.1);
+        }
+        .scan-btn {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            bottom: 5px;
+            padding: 0 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .scan-btn:hover { background: #4338ca; }
+        .scan-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .result-card {
+            display: none;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            animation: slideIn 0.4s;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .result-safe {
+            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+            border: 2px solid var(--safe);
+        }
+        .result-phishing {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            border: 2px solid var(--danger);
+        }
+        .result-icon { font-size: 4rem; margin-bottom: 20px; }
+        .result-title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; }
+        .confidence-bar {
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .confidence-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 1s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: bold;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .feature-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+        .feature-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        .feature-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        .whois-section {
+            background: #f9fafb;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+        .whois-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .whois-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .whois-item {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+        .whois-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .whois-value {
+            font-size: 1rem;
+            color: #1f2937;
+            word-break: break-word;
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+        }
+        .badge-safe { background: var(--safe); color: white; }
+        .badge-danger { background: var(--danger); color: white; }
+        .url-display {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+        .alert-error {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .raw-whois-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+        .raw-whois-btn:hover {
+            background: #4338ca;
+        }
+        .raw-whois-container {
+            display: none;
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            max-height: 400px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-card">
+            <div class="header">
+                <h1><i class="fas fa-shield-alt"></i> Phishing URL Detector</h1>
+                <p>AI-Powered Link Security Scanner with WHOIS Lookup by Areeba Ali</p>
+                <div class="mt-3">
+                    <span class="badge badge-safe">Machine Learning</span>
+                    <span class="badge" style="background: white; color: var(--primary);">Random Forest</span>
+                    <span class="badge badge-safe">Real-time Detection</span>
+                </div>
+            </div>
+
+            <div class="content">
+                <div id="errorAlert" class="alert-error" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Error:</strong> <span id="errorMessage"></span>
+                </div>
+
+                <div class="url-input-container">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        class="url-input" 
+                        placeholder="Enter URL to scan (e.g., https://example.com)"
+                        autocomplete="off"
+                    >
+                    <button id="scanBtn" class="scan-btn">
+                        <i class="fas fa-search"></i> Scan URL
+                    </button>
+                </div>
+
+                <div id="resultContainer"></div>
+            </div>
+        </div>
+
+        <div class="text-center mt-4" style="color: white;">
+            <p><i class="fas fa-info-circle"></i> Powered by Areeba Ali</p>
+        </div>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const scanBtn = document.getElementById('scanBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const errorAlert = document.getElementById('errorAlert');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Helper function s
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') scanUrl();
+        });
+
+        scanBtn.addEventListener('click', scanUrl);
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorAlert.style.display = 'block';
+            setTimeout(() => errorAlert.style.display = 'none', 5000);
+        }
+
+        function hideError() {
+            errorAlert.style.display = 'none';
+        }
+
+        async function scanUrl() {
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                showError('Please enter a URL to scan');
+                return;
+            }
+
+            hideError();
+            scanBtn.disabled = true;
+            scanBtn.innerHTML = '<span class="spinner"></span> Scanning...';
+            resultContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to analyze URL');
+                }
+
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = '<i class="fas fa-search"></i> Scan URL';
+            }
+        }
+
+        function displayResults(data) {
+            const isPhishing = data.is_phishing;
+            const confidence = (data.confidence * 100).toFixed(1);
+            
+            const html = `
+                <div class="result-card ${isPhishing ? 'result-phishing' : 'result-safe'}">
+                    <div class="text-center">
+                        <div class="result-icon">
+                            ${isPhishing ? 
+                                '<i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i>' : 
+                                '<i class="fas fa-check-circle" style="color: var(--safe);"></i>'
+                            }
+                        </div>
+                        <div class="result-title" style="color: ${isPhishing ? 'var(--danger)' : 'var(--safe)'}">
+                            ${isPhishing ? ' Phishing Detected!' : ' URL is Safe'}
+                        </div>
+                        <p style="font-size: 1.1rem; color: #4b5563;">
+                            ${isPhishing ? 
+                                'This URL appears to be a phishing attempt. Do not enter personal information!' : 
+                                'This URL appears to be legitimate and safe to visit.'
+                            }
+                        </p>
+                    </div>
+
+                    <div class="url-display">
+                        <i class="fas fa-link"></i> ${escapeHtml(data.url)}
+                    </div>
+
+                    <div>
+                        <strong style="font-size: 1.1rem;">Confidence Score:</strong>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${confidence}%; background: ${isPhishing ? 'var(--danger)' : 'var(--safe)'}">
+                                ${confidence}%
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong style="font-size: 1.1rem; display: block; margin-bottom: 10px;">
+                            <i class="fas fa-chart-bar"></i> Probability:
+                        </strong>
+                        <div style="display: flex; gap: 15px;">
+                            <div style="flex: 1;">
+                                <span class="badge badge-safe" style="width: 100%; display: block; padding: 10px;">
+                                    Safe: ${(data.probability_safe * 100).toFixed(1)}%
+                                </span>
+                            </div>
+                            <div style="flex: 1;">
+                                <span class="badge badge-danger" style="width: 100%; display: block; padding: 10px;">
+                                    Phishing: ${(data.probability_phishing * 100).toFixed(1)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="whois-section">
+                    <div class="whois-title">
+                        <i class="fas fa-server"></i> URL Features Analysis
+                    </div>
+                    <div class="features-grid">
+                        ${createFeatures(data.features)}
+                    </div>
+                </div>
+
+                ${createWhois(data.whois)}
+            `;
+
+            resultContainer.innerHTML = html;
+            
+            setTimeout(() => {
+                const card = document.querySelector('.result-card');
+                if (card) card.style.display = 'block';
+            }, 100);
+        }
+
+        function createFeatures(features) {
+            const labels = {
+                'url_length': 'URL Length',
+                'num_dots': 'Dots',
+                'num_hyphens': 'Hyphens',
+                'num_slashes': 'Slashes',
+                'has_ip': 'Has IP',
+                'has_https': 'HTTPS',
+                'domain_length': 'Domain Length',
+                'num_subdomains': 'Subdomains',
+                'suspicious_tld': 'Suspicious TLD',
+                'has_suspicious_keyword': 'Suspicious Keywords',
+                'special_char_ratio': 'Special Chars'
+            };
+
+            return Object.entries(features)
+                .filter(([k]) => labels[k])
+                .map(([k, v]) => `
+                    <div class="feature-item">
+                        <div class="feature-label">${labels[k]}</div>
+                        <div class="feature-value">
+                            ${typeof v === 'number' && v < 1 && v > 0 ? 
+                                (v * 100).toFixed(1) + '%' : 
+                                v === 0 || v === 1 ? (v === 1 ? '✓' : '✗') : v
+                            }
+                        </div>
+                    </div>
+                `).join('');
+        }
+
+        function createWhois(whois) {
+            if (whois.error) {
+                return `
+                    <div class="whois-section">
+                        <div class="whois-title">
+                            <i class="fas fa-id-card"></i> WHOIS Information
+                        </div>
+                        <div style="background: #fef3c7; color: #92400e; padding: 20px; border-radius: 10px; border: 1px solid #fde68a;">
+                            <div style="display: flex; align-items: start; gap: 10px;">
+                                <i class="fas fa-info-circle" style="font-size: 1.5rem; margin-top: 2px;"></i>
+                                <div>
+                                    <strong style="display: block; margin-bottom: 10px;">WHOIS Information Unavailable</strong>
+                                    <p style="margin: 5px 0;">${whois.note || 'Could not retrieve WHOIS data for this domain'}</p>
+                                    ${whois.suggestions ? `
+                                        <div style="margin-top: 15px;">
+                                            <strong>Possible reasons:</strong>
+                                            <ul style="margin: 10px 0; padding-left: 20px;">
+                                                ${whois.suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                                            </ul>
+                                        </div>
+                                    ` : ''}
+                                    <p style="margin-top: 15px; font-size: 0.9rem;">
+                                        <i class="fas fa-lightbulb"></i> 
+                                        <strong>Tip:</strong> You can check WHOIS manually at 
+                                        <a href="https://www.whois.com/whois/${whois.domain || ''}" target="_blank" style="color: #92400e; text-decoration: underline;">
+                                            whois.com
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let whoisItems = '';
+            
+            const fieldLabels = {
+                'domain_name': 'Domain Name',
+                'registrar': 'Registrar',
+                'whois_server': 'WHOIS Server',
+                'creation_date': 'Created Date',
+                'expiration_date': 'Expiration Date',
+                'updated_date': 'Updated Date',
+                'registrant_name': 'Registrant Name',
+                'registrant_organization': 'Organization',
+                'registrant_address': 'Address',
+                'registrant_city': 'City',
+                'registrant_state': 'State',
+                'registrant_zipcode': 'Zip Code',
+                'registrant_country': 'Country',
+                'method': 'Data Source'
+            };
+
+            for (const [key, label] of Object.entries(fieldLabels)) {
+                if (whois[key]) {
+                    whoisItems += `
+                        <div class="whois-item">
+                            <div class="whois-label">${label}</div>
+                            <div class="whois-value">${escapeHtml(formatDate(whois[key]))}</div>
+                        </div>`;
+                }
+            }
+
+            if (whois.name_servers && whois.name_servers.length > 0) {
+                const servers = whois.name_servers.map(ns => `<div style="margin: 2px 0;">${escapeHtml(ns)}</div>`).join('');
+                whoisItems += `
+                    <div class="whois-item">
+                        <div class="whois-label">Name Servers</div>
+                        <div class="whois-value">${servers}</div>
+                    </div>`;
+            }
+
+            if (whois.status) {
+                let statuses = '';
+                if (Array.isArray(whois.status)) {
+                    statuses = whois.status.map(s => `<span class="badge badge-safe" style="font-size: 0.75rem; margin: 2px;">${escapeHtml(s)}</span>`).join('');
+                } else if (typeof whois.status === 'string') {
+                    statuses = `<span class="badge badge-safe" style="font-size: 0.75rem; margin: 2px;">${escapeHtml(whois.status)}</span>`;
+                }
+                
+                if (statuses) {
+                    whoisItems += `
+                        <div class="whois-item">
+                            <div class="whois-label">Status</div>
+                            <div class="whois-value">${statuses}</div>
+                        </div>`;
+                }
+            }
+
+            if (whois.emails && whois.emails.length > 0) {
+                const emails = whois.emails.map(e => `<div style="margin: 2px 0;">${escapeHtml(e)}</div>`).join('');
+                whoisItems += `
+                    <div class="whois-item">
+                        <div class="whois-label">Contact Emails</div>
+                        <div class="whois-value">${emails}</div>
+                    </div>`;
+            }
+
+            if (!whoisItems) {
+                whoisItems = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 20px; background: #f3f4f6; border-radius: 10px;">
+                        <i class="fas fa-exclamation-circle" style="font-size: 2rem; color: #6b7280; margin-bottom: 10px;"></i>
+                        <p style="color: #6b7280;">Limited WHOIS information available for this domain</p>
+                    </div>
+                `;
+            }
+
+            let rawDataSection = '';
+            if (whois.raw_data) {
+                const rawDataId = 'rawWhois_' + Math.random().toString(36).substr(2, 9);
+                rawDataSection = `
+                    <div style="margin-top: 20px;">
+                        <button class="raw-whois-btn" onclick="toggleRawWhois('${rawDataId}')">
+                            <i class="fas fa-code"></i> Show Raw WHOIS Data
+                        </button>
+                        <div id="${rawDataId}" class="raw-whois-container">${escapeHtml(whois.raw_data)}</div>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="whois-section">
+                    <div class="whois-title">
+                        <i class="fas fa-id-card"></i> WHOIS Information
+                    </div>
+                    <div class="whois-grid">
+                        ${whoisItems}
+                    </div>
+                    ${rawDataSection}
+                </div>
+            `;
+        }
+
+        function toggleRawWhois(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = element.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (dateStr === 'N/A' || typeof dateStr !== 'string') return dateStr.toString();
+            try {
+                const date = new Date(dateStr);
+                if (isNaN(date.getTime())) return dateStr;
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            } catch {
+                return dateStr;
+            }
+        }
+    </script>
+</body>
+</html>
